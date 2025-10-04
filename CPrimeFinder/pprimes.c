@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <ctype.h>
 #include <time.h>
+#include <pthread.h>
 
 /* ---------- Timing ---------- */
 struct Timer {
@@ -78,6 +79,7 @@ static int is_prime(long long n) {
 }
 
 /* ---------- Results & Output ---------- */
+// Results array marks primality for indices [0, max_value]; index n is valid when 0 <= n <= max_value
 unsigned char *alloc_results(long long max_value) {
     size_t bytes = (size_t)(max_value + 1);
     unsigned char *arr = (unsigned char *)calloc(bytes, 1); // zeroed
@@ -105,10 +107,71 @@ void run_sequential(long long max_value, unsigned char *is_prime_arr) {
     }
 }
 
-/* placeholder: call threaded later; for now reuse sequential so it still runs */
+/* ---------- Threading: shared counter + mutex ---------- */
+
+typedef struct {
+    long long max_value;
+    long long next_n;
+    pthread_mutex_t lock;
+    unsigned char *is_prime_arr;
+} ThreadWork;
+
+static void* prime_worker(void *arg) {
+    ThreadWork *w = (ThreadWork *)arg;
+    for (;;) {
+        long long n;
+        pthread_mutex_lock(&w->lock);
+        if (w->next_n > w->max_value) {
+            pthread_mutex_unlock(&w->lock);
+            break;
+        }
+        n = w->next_n++;
+        pthread_mutex_unlock(&w->lock);
+
+        if (is_prime(n)) {
+            w->is_prime_arr[n] = 1;
+        }
+    }
+    return NULL;
+}
+
+/* Threaded runner: workers claim next n from a mutex-protected shared counter and set is_prime_arr[n] = 1 if prime. */
 void run_threaded(long long max_value, long long thread_count, unsigned char *is_prime_arr) {
-    (void)thread_count; // suppress unused for now
-    run_sequential(max_value, is_prime_arr);
+    ThreadWork work;
+    work.max_value = max_value;
+    work.next_n = 2;
+    work.is_prime_arr = is_prime_arr;
+    if (pthread_mutex_init(&work.lock, NULL) != 0) {
+        fprintf(stderr, "Error: failed to initialize mutex\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int nthreads = (int)thread_count;
+    if (nthreads < 1) nthreads = 1;
+
+    pthread_t *threads = (pthread_t *)malloc(sizeof(pthread_t) * (size_t)nthreads);
+    if (!threads) {
+        fprintf(stderr, "Error: failed to allocate thread handles\n");
+        pthread_mutex_destroy(&work.lock);
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < nthreads; ++i) {
+        int rc = pthread_create(&threads[i], NULL, prime_worker, &work);
+        if (rc != 0) {
+            fprintf(stderr, "Error: pthread_create failed (%d)\n", rc);
+            free(threads);
+            pthread_mutex_destroy(&work.lock);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (int i = 0; i < nthreads; ++i) {
+        pthread_join(threads[i], NULL);
+    }
+
+    free(threads);
+    pthread_mutex_destroy(&work.lock);
 }
 
 /* ---------- Main (thin) ---------- */

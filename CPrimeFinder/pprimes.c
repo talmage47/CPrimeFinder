@@ -5,7 +5,6 @@
 //  Created by Talmage Gaisford on 9/29/25.
 //
 
-// pprimes.c — skeleton with thin main (no threads yet)
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,6 +13,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <pthread.h>
+#include <unistd.h>
 
 /* ---------- Timing ---------- */
 struct Timer {
@@ -92,11 +92,19 @@ unsigned char *alloc_results(long long max_value) {
 
 void count_and_print(const unsigned char *is_prime, long long max_value, const char *label) {
     long long count = 0;
-    for (long long n = 2; n <= max_value; ++n) if (is_prime[n]) count++;
-
+    for (long long n = 2; n <= max_value; ++n) {
+        if (is_prime[n]) {
+            count++;
+        }
+    }
+    
     printf("[%s] total primes: %lld\n", label, count);
     printf("[%s] list:", label);
-    for (long long n = 2; n <= max_value; ++n) if (is_prime[n]) printf(" %lld", n);
+    for (long long n = 2; n <= max_value; ++n) {
+        if (is_prime[n]) {
+            printf(" %lld", n);
+        }
+    }
     printf("\n");
 }
 
@@ -120,12 +128,13 @@ static void* prime_worker(void *arg) {
     ThreadWork *w = (ThreadWork *)arg;
     for (;;) {
         long long n;
-        pthread_mutex_lock(&w->lock);
+        pthread_mutex_lock(&(w->lock));
         if (w->next_n > w->max_value) {
             pthread_mutex_unlock(&w->lock);
             break;
         }
         n = w->next_n++;
+//        printf("thread %d is working with %d", getpid(), n);
         pthread_mutex_unlock(&w->lock);
 
         if (is_prime(n)) {

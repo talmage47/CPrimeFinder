@@ -245,6 +245,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/CPrimeFinder/venv/lib/python3.13/site-packages/PIL/.dylibs",
+					"$(PROJECT_DIR)/CPrimeFinder/venv/lib/python3.13/site-packages/numpy/_core/lib",
+					"$(PROJECT_DIR)/CPrimeFinder/venv/lib/python3.13/site-packages/numpy/random/lib",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -253,6 +259,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/CPrimeFinder/venv/lib/python3.13/site-packages/PIL/.dylibs",
+					"$(PROJECT_DIR)/CPrimeFinder/venv/lib/python3.13/site-packages/numpy/_core/lib",
+					"$(PROJECT_DIR)/CPrimeFinder/venv/lib/python3.13/site-packages/numpy/random/lib",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
